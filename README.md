@@ -177,7 +177,7 @@ After you create a container image with an embedded WebLogic Domain, it's time t
 |:-----------------------------------|
 | If you need to refresh domain configuration based on ```domain.yaml``` file, you will need to run introspection. You can achieve it by adding or changing ```introspectVersion``` property. For example, you can type ```introspectVersion: "2"``` under the ```specs``` section. It will trigger updates of domain resources, including scaling and changes to channels. |
 
-### 06 - Expose WebLogic Admin Server Through Ingress (Nginx)
+### 05 - Expose WebLogic Admin Server Through Ingress (Nginx)
 WebLogic Operator created services accessible internally from the cluster. External users cannot still access the domain since it's not exposed through LoadBalancer or Ingress. Let's generate Ingress and expose the domain to the publicly available hostname.
 1. Make sure edea-domain-ingress.yaml has the correct namespace and backend service name.
    ```yaml
@@ -215,4 +215,4 @@ WebLogic Operator created services accessible internally from the cluster. Exter
 2. ```console kubectl delete namespace edea-demo-weblogic-operator```
 3. ```console kubernetes/samples/scripts/delete-domain/delete-weblogic-domain-resources.sh -d edea-wls-domain```
 4. ```console kubectl delete edea-demo-weblogic-domain```
-5. ```console docker rmi domain-home-in-image:14.1.1.0-slim-11```
+5. ```console docker rmi domain-home-in-image:14.1.1.0-11```
