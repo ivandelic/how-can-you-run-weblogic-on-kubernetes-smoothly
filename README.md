@@ -2,7 +2,7 @@
 
 WebLogic plays a significant role in the cloud-native landscape nowadays, with the help of [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/). How to set up WebLogic Domain in Kubernetes? How to containerize the domain? How to autoscale? Continue reading and explore highlights of WLS on k8s, together with a toolset that will make your ops manageable.
 
-## Prerequisites
+## Introduction
 This guide assumes you have basic skills and knowledge about:
    - Docker CLI and containers (basic)
    - Oracle Cloud Infrastructure (basic)
@@ -20,30 +20,28 @@ Make sure you have:
 
 Familiarize yourself with [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/) and proceed with Installation.
 
-## Install WebLogic Domain and Operator
-
-### 01 - Prepare Samples
+## Prepare Environment
 
 1. Clone the Git repository with various examples locally:
-    ```console
-    git clone --branch v3.3.8 https://github.com/oracle/weblogic-kubernetes-operator
-    ```
+   ```console
+   git clone --branch v3.3.8 https://github.com/oracle/weblogic-kubernetes-operator
+   ```
 2. Visit [container-registry.oracle.com](https://container-registry.oracle.com/), log in with your Oracle Account, and accept terms on the right side of the screen.
    ![](image/conatiner-registry-accept-terms-1.png)
 3. Login with Docker CLI on container-registry.oracle.com, using the same Oracle Account. You will need it to retrieve the base WebLogic image.
-    ```console
-    docker login container-registry-frankfurt.oracle.com
-    ```
+   ```console
+   docker login container-registry-frankfurt.oracle.com
+   ```
 4. Pull WebLogic from the upper reposiotry locally, so the build preocess can use it.
-    ```console
-    docker pull container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11
-    ```
+   ```console
+   docker pull container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11
+   ```
 5. Login with Docker CLI to OCIR. You will need OCIR to store final WebLogic image with the domain.
-    ```console
-    docker login eu-frankfurt-1.ocir.io
-    ```
+   ```console
+   docker login eu-frankfurt-1.ocir.io
+   ```
 
-### 02 - Install WebLogic Operator
+## Install WebLogic Operator
 We will create a K8s namespace and deploy WebLogic Operator in it.
 
 1. Create Kubernetes Namespace for WebLogic Kubernetes Operator:
@@ -87,9 +85,9 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
     helm list -n edea-demo-weblogic-operator
     ```
    
-### 03 Domain-Home-In-Image
+## Install WebLogic Domain (Domain-Home-In-Image)
 
-#### 03.1 - Create WebLogic Domain (Domain-Home-In-Image)
+### Create WebLogic Domain
 After deploying WebLogic Operator, it's time to prepare demo domain and container images.
 
 1. Create K8s namespace for WebLogic Domain:
@@ -160,7 +158,7 @@ After deploying WebLogic Operator, it's time to prepare demo domain and containe
     docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11
     ```
 
-#### 03.2 - Deploy WebLogic Domain to Kubernetes with Operator (Domain-Home-In-Image)
+### Deploy WebLogic Domain to Kubernetes with Operator
 After you create a container image with an embedded WebLogic Domain, it's time to deploy the domain in the Kubernetes cluster with the Operator's help.
 1. Edit file ```1-domain-home-in-image/edea-domain-output/weblogic-domains/edea-demo/domain.yaml``` and update it with following properties:
    * Change image with ```image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11"```.
@@ -184,9 +182,9 @@ After you create a container image with an embedded WebLogic Domain, it's time t
 |:-----------------------------------|
 | If you need to refresh domain configuration based on ```domain.yaml``` file, you will need to run introspection. You can achieve it by adding or changing ```introspectVersion``` property. For example, you can type ```introspectVersion: "2"``` under the ```specs``` section. It will trigger updates of domain resources, including scaling and changes to channels. |
 
-### 04 - Model-In-Image
+## Install WebLogic Domain (Model-In-Image)
 
-#### 04.1 - Create WebLogic Domain (Model-In-Image)
+### Create WebLogic Domain
 1. Go to the folder
     ```console
     cd 2-model-in-image/model-images
@@ -234,7 +232,7 @@ After you create a container image with an embedded WebLogic Domain, it's time t
    ```
 10. You will se a confirmation:
    ```console
-   [INFO   ] Build successful. Build time=32s. Image tag=model-in-image:14.1.1.0-11
+   Build successful. Build time=32s. Image tag=model-in-image:14.1.1.0-11
    ```
 11. Check the existence of a freshly generated container image with the domain inside:
     ```console
@@ -255,7 +253,7 @@ After you create a container image with an embedded WebLogic Domain, it's time t
     docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11
     ```
 
-#### 04.2 - Deploy WebLogic Domain to Kubernetes with Operator (Model-In-Image)
+### Deploy WebLogic Domain to Kubernetes with Operator
 1. Create secrets:
    ```console
    kubectl -n edea-demo-weblogic-domain create secret generic playground-weblogic-credentials --from-literal=username=weblogic --from-literal=password=welcome1
@@ -271,21 +269,26 @@ After you create a container image with an embedded WebLogic Domain, it's time t
     cd ..
     kubectl apply -f 2-model-in-image/domain.yaml
     ```
-4. Wait for some time and verify domain contents with:
-    ```console
-    kubectl describe domain playground -n edea-demo-weblogic-domain
-    ```
-5. Since we enabled ```adminChannelPortForwardingEnabled```, you can access the port-forwarded admin port to your local machine:
-    ```console
-   kubectl port-forward pods/edea-demo-admin-server -n edea-demo-weblogic-domain 7001:7001
+4. You can examine domain contents:
+   ```console
+   kubectl describe domain playground -n edea-demo-weblogic-domain
    ```
-6. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
+5. See the creation of pods:
+   ```console
+   kubectl get pods -n edea-demo-weblogic-domain --watch
+   ```
+6. Since we enabled ```adminChannelPortForwardingEnabled```, you can access the port-forwarded admin port to your local machine:
+   ```console
+   kubectl port-forward pods/playground-admin-server -n edea-demo-weblogic-domain 7001:7001
+   ```
+7. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
+
 
 | :information_source: Note          |
 |:-----------------------------------|
 | If you need to refresh domain configuration based on ```domain.yaml``` file, you will need to run introspection. You can achieve it by adding or changing ```introspectVersion``` property. For example, you can type ```introspectVersion: "2"``` under the ```specs``` section. It will trigger updates of domain resources, including scaling and changes to channels. |
 
-### 05 - Expose WebLogic Admin Server Through Ingress (Nginx)
+## Expose WebLogic Admin Server Through Ingress (Nginx)
 WebLogic Operator created services accessible internally from the cluster. External users cannot still access the domain since it's not exposed through LoadBalancer or Ingress. Let's generate Ingress and expose the domain to the publicly available hostname.
 1. Make sure edea-domain-ingress.yaml has the correct namespace and backend service name.
    ```yaml

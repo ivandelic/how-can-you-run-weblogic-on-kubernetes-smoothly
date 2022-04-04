@@ -20,7 +20,7 @@ spec:
   domainHome: /u01/domains/playground
 
   # The WebLogic Server image that the Operator uses to start the domain
-  image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11
+  image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11"
 
   # Defaults to "Always" if image tag (version) is ':latest'
   imagePullPolicy: "Always"
