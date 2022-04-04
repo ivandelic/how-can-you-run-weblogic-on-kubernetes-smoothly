@@ -86,8 +86,10 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
     ```console
     helm list -n edea-demo-weblogic-operator
     ```
+   
+### 03 Domain-Home-In-Image
 
-### 03A - Create WebLogic Domain (Domain-Home-In-Image)
+#### 03.1 - Create WebLogic Domain (Domain-Home-In-Image)
 After deploying WebLogic Operator, it's time to prepare demo domain and container images.
 
 1. Create K8s namespace for WebLogic Domain:
@@ -158,58 +160,7 @@ After deploying WebLogic Operator, it's time to prepare demo domain and containe
     docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11
     ```
 
-### 03B - Create WebLogic Domain (Mode-In-Image)
-1. Go to the folder
-    ```console
-    cd 2-model-in-image/model-images
-    ```
-2. Download weblogic-deploy.zip in the current folder:
-    ```console
-    curl -m 120 -fL https://github.com/oracle/weblogic-deploy-tooling/releases/latest/download/weblogic-deploy.zip -o ./weblogic-deploy.zip
-    ```
-3. Download imagetool.zip in the current folder and unzip it:
-    ```console
-    curl -m 120 -fL https://github.com/oracle/weblogic-image-tool/releases/latest/download/imagetool.zip -o ./imagetool.zip
-    unzip imagetool.zip
-    ```
-4. Clear cache, if there is one previously generated:
-   ```console
-   ./imagetool/bin/imagetool.sh cache deleteEntry --key wdt_latest
-   ```
-5. Install WIT and reference WDT:
-   ```
-   ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./weblogic-deploy.zip
-   ```
-6. Go in folder with WAR source:
-   ```
-   cd ../archives/archive-v1/
-   ```
-7. Zip the archive:
-   ```
-   zip -r ../../model-images/playground-model/archive.zip wlsdeploy
-   ```
-8. Go in the folder with model images:
-   ```
-   cd ../../model-images
-   ```
-9. Build the image with inputs:
-   ```
-    ./imagetool/bin/imagetool.sh update \
-    --tag model-in-image:14.1.1.0-11 \
-    --fromImage container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11 \
-    --wdtModel      ./playground-model/playground.yaml \
-    --wdtVariables  ./playground-model/playground.properties \
-    --wdtArchive    ./playground-model/archive.zip \
-    --wdtModelOnly \
-    --wdtDomainType WLS \
-    --chown oracle:root
-   ```
-10. Check the existence of a freshly generated container image with the domain inside:
-    ```console
-    docker images | grep model-in-image
-    ```
-
-### 04 - Deploy WebLogic Domain to Kubernetes with Operator
+#### 03.2 - Deploy WebLogic Domain to Kubernetes with Operator (Domain-Home-In-Image)
 After you create a container image with an embedded WebLogic Domain, it's time to deploy the domain in the Kubernetes cluster with the Operator's help.
 1. Edit file ```1-domain-home-in-image/edea-domain-output/weblogic-domains/edea-demo/domain.yaml``` and update it with following properties:
    * Change image with ```image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11"```.
@@ -228,6 +179,107 @@ After you create a container image with an embedded WebLogic Domain, it's time t
    kubectl port-forward pods/edea-demo-admin-server -n edea-demo-weblogic-domain 7001:7001
    ```
 5. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
+
+| :information_source: Note          |
+|:-----------------------------------|
+| If you need to refresh domain configuration based on ```domain.yaml``` file, you will need to run introspection. You can achieve it by adding or changing ```introspectVersion``` property. For example, you can type ```introspectVersion: "2"``` under the ```specs``` section. It will trigger updates of domain resources, including scaling and changes to channels. |
+
+### 04 - Model-In-Image
+
+#### 04.1 - Create WebLogic Domain (Model-In-Image)
+1. Go to the folder
+    ```console
+    cd 2-model-in-image/model-images
+    ```
+2. Download weblogic-deploy.zip in the current folder:
+    ```console
+    curl -m 120 -fL https://github.com/oracle/weblogic-deploy-tooling/releases/latest/download/weblogic-deploy.zip -o ./weblogic-deploy.zip
+    ```
+3. Download imagetool.zip in the current folder and unzip it:
+    ```console
+    curl -m 120 -fL https://github.com/oracle/weblogic-image-tool/releases/latest/download/imagetool.zip -o ./imagetool.zip
+    unzip imagetool.zip
+    ```
+4. Clear cache, if there is one previously generated:
+   ```console
+   ./imagetool/bin/imagetool.sh cache deleteEntry --key wdt_latest
+   ```
+5. Install WIT and reference WDT:
+   ```console
+   ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./weblogic-deploy.zip
+   ```
+6. Go in folder with WAR source:
+   ```console
+   cd ../archives/archive-v1/
+   ```
+7. Zip the archive:
+   ```console
+   zip -r ../../model-images/playground-model/archive.zip wlsdeploy
+   ```
+8. Go in the folder with model images:
+   ```console
+   cd ../../model-images
+   ```
+9. Build the image with inputs:
+   ```console
+    ./imagetool/bin/imagetool.sh update \
+    --tag model-in-image:14.1.1.0-11 \
+    --fromImage container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11 \
+    --wdtModel      ./playground-model/playground.yaml \
+    --wdtVariables  ./playground-model/playground.properties \
+    --wdtArchive    ./playground-model/archive.zip \
+    --wdtModelOnly \
+    --wdtDomainType WLS \
+    --chown oracle:root
+   ```
+10. You will se a confirmation:
+   ```console
+   [INFO   ] Build successful. Build time=32s. Image tag=model-in-image:14.1.1.0-11
+   ```
+11. Check the existence of a freshly generated container image with the domain inside:
+    ```console
+    docker images | grep model-in-image
+    ```
+12. Tag the image with the proper OCIR data, samilarly to below:
+    ```console
+    docker tag model-in-image:14.1.1.0-11 <region>.ocir.io/<namespace>/oracle/model-in-image:14.1.1.0-11
+    docker tag model-in-image:14.1.1.0-11 eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11
+    ```
+13. Make sure you are logged in to OCIR:
+    ```console
+    docker login eu-frankfurt-1.ocir.io
+    ```
+14. Push the image to OCIR. You will need to make sure
+    ```console
+    docker push <region>.ocir.io/<namespace>/oracle/model-in-image:14.1.1.0-11
+    docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11
+    ```
+
+#### 04.2 - Deploy WebLogic Domain to Kubernetes with Operator (Model-In-Image)
+1. Create secrets:
+   ```console
+   kubectl -n edea-demo-weblogic-domain create secret generic playground-weblogic-credentials --from-literal=username=weblogic --from-literal=password=welcome1
+   kubectl -n edea-demo-weblogic-domain label secret playground-weblogic-credentials weblogic.domainUID=playground
+   kubectl -n edea-demo-weblogic-domain create secret generic playground-runtime-encryption-secret --from-literal=password=my_runtime_password
+   kubectl -n edea-demo-weblogic-domain label secret playground-runtime-encryption-secret weblogic.domainUID=playground
+   ```
+2. Edit file ```2-model-in-image/domain.yaml``` and update it with following properties:
+   * Change image with ```image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11"```.
+   * Add ```adminChannelPortForwardingEnabled: true``` under the ```adminServer``` section.
+3. Apply freshly generated domain.yaml with kubectl:
+    ```console
+    cd ..
+    kubectl apply -f 2-model-in-image/domain.yaml
+    ```
+4. Wait for some time and verify domain contents with:
+    ```console
+    kubectl describe domain playground -n edea-demo-weblogic-domain
+    ```
+5. Since we enabled ```adminChannelPortForwardingEnabled```, you can access the port-forwarded admin port to your local machine:
+    ```console
+   kubectl port-forward pods/edea-demo-admin-server -n edea-demo-weblogic-domain 7001:7001
+   ```
+6. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
 
 | :information_source: Note          |
 |:-----------------------------------|
