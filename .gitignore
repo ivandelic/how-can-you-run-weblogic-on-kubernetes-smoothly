@@ -1,2 +1,5 @@
 weblogic-kubernetes-operator/
 .idea/
+/2-model-in-image/model-images/imagetool.zip
+/2-model-in-image/model-images/weblogic-deploy.zip
+/2-model-in-image/model-images/imagetool/

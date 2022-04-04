@@ -20,11 +20,11 @@ adminServerName: admin-server
 # Unique ID identifying a domain.
 # This ID must not contain an underscope ("_"), and must be lowercase and unique across all domains
 # in a Kubernetes cluster.
-domainUID: edea-domain
+domainUID: edea-demo
 
 # Domain home directory of the WebLogic domain to be created in the generated WebLogic Server image.
 # If not specified, the value is derived from the domainUID as /u01/oracle/user_projects/domains/<domainUID>
-domainHome: /u01/oracle/user_projects/domains/edea-domain
+domainHome: /u01/oracle/user_projects/domains/domain1
 
 
 # Determines which WebLogic Servers the operator will start up
@@ -81,7 +81,7 @@ imagePullPolicy: IfNotPresent
 # Name of the Kubernetes secret for the Admin Server's username and password
 # The name must be lowercase.
 # If not specified, the value is derived from the domainUID as <domainUID>-weblogic-credentials
-weblogicCredentialsSecretName: edea-domain-weblogic-credentials
+weblogicCredentialsSecretName: edea-demo-weblogic-credentials
 
 # Whether to include server .out to the pod's stdout.
 # The default is true.
@@ -130,7 +130,7 @@ adminNodePort: 30701
 exposeAdminNodePort: false
 
 # Name of the domain namespace
-namespace: edea-wls-domain
+namespace: edea-demo-weblogic-domain
 
 # Java Option for WebLogic Server
 # Add -Dweblogic.security.SSL.ignoreHostnameVerification=true if sslEnabled is true.
@@ -154,7 +154,7 @@ domainPVMountPath: /shared
 # Refer to [WebLogic Server images](../../../../../site/weblogic-server-images.md) for details on how
 # to obtain or create the image.
 # See README.md for more help.
-domainHomeImageBase: fra.ocir.io/frsxwtjslf35/oracle/weblogic:14.1.1.0-slim-11
+domainHomeImageBase: container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11
 
 # Uncomment to customize the WebLogic Deploy Tool (WDT) version used by WIT
 # when it is used for updating the WebLogic domain with a new domain home.

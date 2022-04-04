@@ -34,7 +34,11 @@ Familiarize yourself with [WebLogic Kubernetes Operator](https://oracle.github.i
     ```console
     docker login container-registry-frankfurt.oracle.com
     ```
-4. Login with Docker CLI to OCIR. You will need OCIR to store the WebLogic image with the domain.
+4. Pull WebLogic from the upper reposiotry locally, so the build preocess can use it.
+    ```console
+    docker pull container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11
+    ```
+5. Login with Docker CLI to OCIR. You will need OCIR to store final WebLogic image with the domain.
     ```console
     docker login eu-frankfurt-1.ocir.io
     ```
@@ -83,7 +87,7 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
     helm list -n edea-demo-weblogic-operator
     ```
 
-### 03 - Create WebLogic Domain
+### 03A - Create WebLogic Domain (Domain-Home-In-Image)
 After deploying WebLogic Operator, it's time to prepare demo domain and container images.
 
 1. Create K8s namespace for WebLogic Domain:
@@ -112,7 +116,7 @@ After deploying WebLogic Operator, it's time to prepare demo domain and containe
     ```
 6. Copy the template file (create-domain-inputs.yaml) for domain creation in the project folder. The template file contains the structure for domain creation that will be baked in the container image. This example uses Domain in Image mode to generate a container image with domain home embedded.
     ```console
-    cp kubernetes/samples/scripts/create-weblogic-domain/domain-home-in-image/create-domain-inputs.yaml ../edea-domain-inputs.yaml
+    cp kubernetes/samples/scripts/create-weblogic-domain/domain-home-in-image/create-domain-inputs.yaml ../1-domain-home-in-image/edea-domain-inputs.yaml
     ```
 7. Edit the file edea-domain-inputs.yaml and update properties with:
    * ```domainUID: edea-demo```
@@ -122,7 +126,7 @@ After deploying WebLogic Operator, it's time to prepare demo domain and containe
 8. Remove ```clusterName: cluster-1``` form the edea-domain-inputs.yaml to make sure WebLogic cluster is not created. We need it to stay compliant with WebLogic Standard Edition licensing.
 9. Run the next command to generate fresh container image with baked domain inside. Creation of domain is instructed by the template file from the previous step. The script will prepare new container image, based on the image provided from the above step.
     ```console
-    kubernetes/samples/scripts/create-weblogic-domain/domain-home-in-image/create-domain.sh -i ../edea-domain-inputs.yaml -o edea-domain-output -u weblogic -p welcome1
+    kubernetes/samples/scripts/create-weblogic-domain/domain-home-in-image/create-domain.sh -i ../1-domain-home-in-image/edea-domain-inputs.yaml -o ../1-domain-home-in-image/edea-domain-output -u weblogic -p welcome1
     ```
 10. You will se an output similar to this:
      ```console
@@ -154,14 +158,66 @@ After deploying WebLogic Operator, it's time to prepare demo domain and containe
     docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11
     ```
 
+### 03B - Create WebLogic Domain (Mode-In-Image)
+1. Go to the folder
+    ```console
+    cd 2-model-in-image/model-images
+    ```
+2. Download weblogic-deploy.zip in the current folder:
+    ```console
+    curl -m 120 -fL https://github.com/oracle/weblogic-deploy-tooling/releases/latest/download/weblogic-deploy.zip -o ./weblogic-deploy.zip
+    ```
+3. Download imagetool.zip in the current folder and unzip it:
+    ```console
+    curl -m 120 -fL https://github.com/oracle/weblogic-image-tool/releases/latest/download/imagetool.zip -o ./imagetool.zip
+    unzip imagetool.zip
+    ```
+4. Clear cache, if there is one previously generated:
+   ```console
+   ./imagetool/bin/imagetool.sh cache deleteEntry --key wdt_latest
+   ```
+5. Install WIT and reference WDT:
+   ```
+   ./imagetool/bin/imagetool.sh cache addInstaller --type wdt --version latest --path ./weblogic-deploy.zip
+   ```
+6. Go in folder with WAR source:
+   ```
+   cd ../archives/archive-v1/
+   ```
+7. Zip the archive:
+   ```
+   zip -r ../../model-images/playground-model/archive.zip wlsdeploy
+   ```
+8. Go in the folder with model images:
+   ```
+   cd ../../model-images
+   ```
+9. Build the image with inputs:
+   ```
+    ./imagetool/bin/imagetool.sh update \
+    --tag model-in-image:14.1.1.0-11 \
+    --fromImage container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11 \
+    --wdtModel      ./playground-model/playground.yaml \
+    --wdtVariables  ./playground-model/playground.properties \
+    --wdtArchive    ./playground-model/archive.zip \
+    --wdtModelOnly \
+    --wdtDomainType WLS \
+    --chown oracle:root
+   ```
+10. Check the existence of a freshly generated container image with the domain inside:
+    ```console
+    docker images | grep model-in-image
+    ```
+
 ### 04 - Deploy WebLogic Domain to Kubernetes with Operator
 After you create a container image with an embedded WebLogic Domain, it's time to deploy the domain in the Kubernetes cluster with the Operator's help.
-1. Edit file ```edea-domain-output/weblogic-domains/edea-demo/domain.yaml``` and update it with following properties:
+1. Edit file ```1-domain-home-in-image/edea-domain-output/weblogic-domains/edea-demo/domain.yaml``` and update it with following properties:
    * Change image with ```image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/domain-home-in-image:14.1.1.0-11"```.
    * Add ```adminChannelPortForwardingEnabled: true``` under the ```adminServer``` section.
 2. Apply freshly generated domain.yaml with kubectl:
     ```console
-    kubectl apply -f edea-domain-output/weblogic-domains/edea-demo/domain.yaml
+    cd ..
+    kubectl apply -f 1-domain-home-in-image/edea-domain-output/weblogic-domains/edea-demo/domain.yaml
     ```
 3. Wait for some time and verify domain contents with:
     ```console
@@ -177,7 +233,7 @@ After you create a container image with an embedded WebLogic Domain, it's time t
 |:-----------------------------------|
 | If you need to refresh domain configuration based on ```domain.yaml``` file, you will need to run introspection. You can achieve it by adding or changing ```introspectVersion``` property. For example, you can type ```introspectVersion: "2"``` under the ```specs``` section. It will trigger updates of domain resources, including scaling and changes to channels. |
 
-### 06 - Expose WebLogic Admin Server Through Ingress (Nginx)
+### 05 - Expose WebLogic Admin Server Through Ingress (Nginx)
 WebLogic Operator created services accessible internally from the cluster. External users cannot still access the domain since it's not exposed through LoadBalancer or Ingress. Let's generate Ingress and expose the domain to the publicly available hostname.
 1. Make sure edea-domain-ingress.yaml has the correct namespace and backend service name.
    ```yaml
