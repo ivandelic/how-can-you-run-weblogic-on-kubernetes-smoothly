@@ -271,4 +271,4 @@ WebLogic Operator created services accessible internally from the cluster. Exter
 2. ```console kubectl delete namespace edea-demo-weblogic-operator```
 3. ```console kubernetes/samples/scripts/delete-domain/delete-weblogic-domain-resources.sh -d edea-wls-domain```
 4. ```console kubectl delete edea-demo-weblogic-domain```
-5. ```console docker rmi domain-home-in-image:14.1.1.0-slim-11```
+5. ```console docker rmi domain-home-in-image:14.1.1.0-11```
