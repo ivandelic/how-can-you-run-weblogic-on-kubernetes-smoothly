@@ -2,6 +2,11 @@
 
 WebLogic plays a significant role in the cloud-native landscape nowadays, with the help of [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/). How to set up WebLogic Domain in Kubernetes? How to containerize the domain? How to autoscale? Continue reading and explore highlights of WLS on k8s, together with a toolset that will make your ops manageable.
 
+You can use one of the following methods for domain generation:
+- Domain in PV
+- Domain Home in Image
+- Model in Image
+
 ## Introduction
 This guide assumes you have basic skills and knowledge about:
    - Docker CLI and containers (basic)
