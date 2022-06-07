@@ -1,9 +1,9 @@
-# How to Setup WebLogic Standard Edition on Kubernetes With WebLogic Operator and Nginx
+# How Can You Run WebLogic on Kubernetes Smoothly?
 
 WebLogic can fit nicely in the cloud-native landscape nowadays, with the help of [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/). How to set up WebLogic Domain in Kubernetes? How to containerize the domain? How to scale? Continue reading and explore highlights of WLS on k8s, together with a toolset that will make your ops manageable.
 
 You can use one of the following methods for domain generation:
-- Domain in PV
+- Domain Home in K8s Persisten Volume
 - Domain Home in Image
 - Model in Image
 
@@ -281,15 +281,25 @@ WebLogic Operator created services accessible internally from the cluster. Exter
 4. Add DNS records for ```web.cloud-coaching.ivandelic.com``` and ```admin.cloud-coaching.ivandelic.com``` pointing to the ```EXTERNAL-IP``` from the previous step.
 4. Open your browser and go to ```http://admin.cloud-coaching.ivandelic.com/console``` and ```http://web.cloud-coaching.ivandelic.com/myapp_war/``` .
 
-## Uninstall WebLogic Domain and Operator (Optional)
-1. ```helm uninstall cloud-coaching-weblogic-operator -n cloud-coaching-weblogic-operator-ns```
-2. ```kubectl delete namespace cloud-coaching-weblogic-operator-ns```
-3. ```helm repo remove weblogic-operator```
-
-4. ```kubectl delete namespace cloud-coaching-weblogic-operator-ns```
-
-
-
-4. ```kubernetes/samples/scripts/delete-domain/delete-weblogic-domain-resources.sh -d edea-wls-domain```
-5. ```kubectl delete cloud-coaching-weblogic-operator-ns```
-6. ```docker rmi domain-home-in-image:14.1.1.0-11```
+## Uninstall
+### WebLogic Operator
+```
+helm uninstall cloud-coaching-weblogic-operator -n cloud-coaching-weblogic-operator-ns
+```
+```
+kubectl delete namespace cloud-coaching-weblogic-operator-ns
+```
+```
+helm repo remove weblogic-operator
+```
+### Ingress Nginx
+```
+kubectl delete namespace cloud-coaching-ingress-nginx
+```
+### WebLogic Domain
+```
+kubectl delete namespace cloud-coaching-weblogic-domain-ns
+```
+```
+docker rmi cloud-coaching-demo-app:1.0
+```
