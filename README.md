@@ -1,5 +1,7 @@
 # How Can You Run WebLogic on Kubernetes Smoothly?
 
+![](image/heading.png)
+
 WebLogic can fit nicely in the cloud-native landscape nowadays, with the help of [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/). How to set up WebLogic Domain in Kubernetes? How to containerize the domain? How to scale? Continue reading and explore highlights of WLS on k8s, together with a toolset that will make your ops manageable.
 
 You can use one of the following methods for domain generation:
@@ -21,6 +23,10 @@ Make sure you have:
 3. ```kubectl``` installed locally. You can follow the [installation docs](https://kubernetes.io/docs/tasks/tools/) and configure it by following [the guide](https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengdownloadkubeconfigfile.htm#localdownload).
 4. Access to OCIR and the ability to push and pull container images. Please follow the [official guide](https://docs.oracle.com/en-us/iaas/Content/Registry/Tasks/registrypullingimagesfromocir.htm)
 5. Helm installed locally (package manager for K8s applications). It's required to install WebLogic Operator. Please follow the official [guide](https://helm.sh/docs/intro/install/).
+
+We start with provisioned OKE and OCIR ready to host images, depicted in picture below.
+
+![](image/build-2.png)
 
 Familiarize yourself with [WebLogic Kubernetes Operator](https://oracle.github.io/weblogic-kubernetes-operator/) and proceed with Installation.
 
@@ -44,6 +50,8 @@ Familiarize yourself with [WebLogic Kubernetes Operator](https://oracle.github.i
 ## Install Ingress Nginx Controller
 Ingress makes Kubernetes deployments very easy and fluid. You set the rules, domains, subdomains, and paths for each deployment. Ingress holds a significant place in Kubernetes architecture because of deployment decoupling from the network and IP management. It's implemented with popular reverse-proxies to handle the inbound requests and route them to the proper deployments and pods. Here, we will use [Nginx Ingress Controller](https://kubernetes.github.io/ingress-nginx/). You can follow the [official install guide](https://docs.oracle.com/en-us/iaas/Content/ContEng/Tasks/contengsettingupingresscontroller.htm#settingupcontroller), or follows the steps below.
 
+![Installing Ingress Nginx Controller](image/build-3.png)
+
 1. Since my environment is a shared with multiple users, I need to support multiple ingress controllers. You probably don't need that, so you can follow the official install guide. I decided to copy the content of ```https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.2.0/deploy/static/provider/cloud/deploy.yaml``` into a file [ingress-nginx.yaml](manifests/ingress-nginx.yaml). I have modified the value of `namespace`, `controller-class`, and `ingress-class` prefixing it with `cloud-coaching` to support multiple ingress controlles in the cluster.
 2. After the manifest is ready for deployment, execute:
    ```console
@@ -63,6 +71,8 @@ Ingress makes Kubernetes deployments very easy and fluid. You set the rules, dom
 
 ## Install WebLogic Operator
 We will create a K8s namespace and deploy WebLogic Operator in it.
+
+![Installing Weblogic Operator](image/build-4.png)
 
 1. Create Kubernetes Namespace for WebLogic Kubernetes Operator:
     ```console
@@ -110,7 +120,11 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
     helm list -n cloud-coaching-weblogic-operator-ns
     ```
    
-## Create WebLogic Domain
+## Build Image With Domain Model
+Model in Image implies you have domain model prepared, together with Java EE application. Weblogic Kubernetes Toolkit ensures Image Tool combines WebLogic binaries with domain model and application archives. The process is depicted in the picture below.
+
+![Model in Image](image/model-in-image-process.png)
+
 1. Go to the folder
     ```console
     cd model-in-image/model-images
@@ -146,40 +160,44 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
    ```
 9. Build the image with inputs:
    ```console
-    ./imagetool/bin/imagetool.sh update \
-    --tag cloud-coaching-demo-app:1.0 \
-    --fromImage container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11 \
-    --wdtModel      ./playground-model/playground.yaml \
-    --wdtVariables  ./playground-model/playground.properties \
-    --wdtArchive    ./playground-model/archive.zip \
-    --wdtModelOnly \
-    --wdtDomainType WLS \
-    --chown oracle:root
+   ./imagetool/bin/imagetool.sh update \
+   --tag cloud-coaching-demo-app:1.0 \
+   --fromImage container-registry-frankfurt.oracle.com/middleware/weblogic:14.1.1.0-11 \
+   --wdtModel      ./playground-model/playground.yaml \
+   --wdtVariables  ./playground-model/playground.properties \
+   --wdtArchive    ./playground-model/archive.zip \
+   --wdtModelOnly \
+   --wdtDomainType WLS \
+   --chown oracle:root
    ```
 10. You will se a confirmation:
-   ```console
-   Build successful. Build time=82s. Image tag=cloud-coaching-demo-app:1.0
-   ```
+    ```console
+    Build successful. Build time=82s. Image tag=cloud-coaching-demo-app:1.0
+    ```
 11. Check the existence of a freshly generated container image with the domain inside:
-   ```console
-   docker images | grep cloud-coaching-demo-app
-   ```
+    ```console
+    docker images | grep cloud-coaching-demo-app
+    ```
 12. Tag the image with the proper OCIR data, samilarly to below:
-   ```console
-   docker tag cloud-coaching-demo-app:1.0 <region>.ocir.io/<namespace>/oracle/cloud-coaching-demo-app:1.0
-   docker tag cloud-coaching-demo-app:1.0 eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/cloud-coaching-demo-app:1.0
-   ```
+    ```console
+    docker tag cloud-coaching-demo-app:1.0 <region>.ocir.io/<namespace>/oracle/cloud-coaching-demo-app:1.0
+    docker tag cloud-coaching-demo-app:1.0 eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/cloud-coaching-demo-app:1.0
+    ```
 13. Make sure you are logged in to OCIR:
-   ```console
-   docker login eu-frankfurt-1.ocir.io
-   ```
+    ```console
+    docker login eu-frankfurt-1.ocir.io
+    ```
 14. Push the image to OCIR. You will need to make sure
-   ```console
-   docker push <region>.ocir.io/<namespace>/oracle/cloud-coaching-demo-app:1.0
-   docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/cloud-coaching-demo-app:1.0
-   ```
+    ```console
+    docker push <region>.ocir.io/<namespace>/oracle/cloud-coaching-demo-app:1.0
+    docker push eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/cloud-coaching-demo-app:1.0
+    ```
 
 ## Deploy WebLogic Domain to Kubernetes with Operator
+It's time to deploy WebLogic domain using WebLogic Kubernetes Operator.
+
+![](image/build-5.png)
+
 1. Create K8s namespace for WebLogic Domain:
     ```console
     kubectl create namespace cloud-coaching-weblogic-domain-ns
@@ -198,7 +216,7 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
     ```
 4. Create OCIR pull secret:
    ```console
-   kubectl create secret docker-registry ocirsecret --docker-server=fra.ocir.io --docker-username='<tenancy-namespace>/<oci-username>' --docker-password='<oci-auth-token>' --docker-email='<email-address>'
+   kubectl create secret docker-registry ocirsecret --docker-server=fra.ocir.io --docker-username='<tenancy-namespace>/<oci-username>' --docker-password='<oci-auth-token>' --docker-email='<email-address>' -n cloud-coaching-weblogic-domain-ns
    ```
 5. Create WebLogice secrets:
    ```console
@@ -212,21 +230,21 @@ We will create a K8s namespace and deploy WebLogic Operator in it.
    * Add ```adminChannelPortForwardingEnabled: true``` under the ```adminServer``` section.
 7. Apply freshly generated domain.yaml with kubectl:
     ```console
-    kubectl apply -f ../domain.yaml
+    kubectl apply -f ../../manifests/wls-domain.yaml
     ```
 8. You can examine domain contents:
    ```console
    kubectl describe domain cloud-coaching -n cloud-coaching-weblogic-domain-ns
    ```
-9.  See the creation of pods:
+9. See the creation of pods:
    ```console
    kubectl get pods -n cloud-coaching-weblogic-domain-ns --watch
    ```
-11. Since we enabled ```adminChannelPortForwardingEnabled```, you can access the port-forwarded admin port to your local machine:
-   ```console
-   kubectl port-forward pods/cloud-coaching-admin-server -n cloud-coaching-weblogic-domain-ns 7001:7001
-   ```
-12. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
+10. Since we enabled ```adminChannelPortForwardingEnabled```, you can access the port-forwarded admin port to your local machine:
+    ```console
+    kubectl port-forward pods/cloud-coaching-admin-server -n cloud-coaching-weblogic-domain-ns 7001:7001
+    ```
+11. Open your browser and go to ```http://localhost:7001/console```. You have set up credentials in step 5 of [Section 03](#03---create-weblogic-domain).
 
 ## Expose WebLogic Admin Server Through Ingress (Nginx)
 WebLogic Operator created services accessible internally from the cluster. External users cannot still access the domain since it's not exposed through LoadBalancer or Ingress. Let's generate Ingress and expose the domain to the publicly available hostname.
@@ -279,7 +297,7 @@ WebLogic Operator created services accessible internally from the cluster. Exter
    kubectl get svc -n cloud-coaching-ingress-nginx
    ```
 4. Add DNS records for ```web.cloud-coaching.ivandelic.com``` and ```admin.cloud-coaching.ivandelic.com``` pointing to the ```EXTERNAL-IP``` from the previous step.
-4. Open your browser and go to ```http://admin.cloud-coaching.ivandelic.com/console``` and ```http://web.cloud-coaching.ivandelic.com/myapp_war/``` .
+5. Open your browser and go to ```http://admin.cloud-coaching.ivandelic.com/console``` and ```http://web.cloud-coaching.ivandelic.com/myapp_war/``` .
 
 ## Uninstall
 ### WebLogic Operator
