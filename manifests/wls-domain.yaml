@@ -6,10 +6,10 @@
 apiVersion: "weblogic.oracle/v8"
 kind: Domain
 metadata:
-  name: playground
-  namespace: edea-demo-weblogic-domain
+  name: cloud-coaching
+  namespace: cloud-coaching-weblogic-domain-ns
   labels:
-    weblogic.domainUID: playground
+    weblogic.domainUID: cloud-coaching
 
 spec:
   # Set to 'FromModel' to indicate 'Model in Image'.
@@ -17,22 +17,22 @@ spec:
 
   # The WebLogic Domain Home, this must be a location within
   # the image for 'Model in Image' domains.
-  domainHome: /u01/domains/playground
+  domainHome: /u01/domains/cloud-coaching
 
   # The WebLogic Server image that the Operator uses to start the domain
-  image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/model-in-image:14.1.1.0-11"
+  image: "eu-frankfurt-1.ocir.io/frsxwtjslf35/oracle/cloud-coaching-demo-app:1.0"
 
   # Defaults to "Always" if image tag (version) is ':latest'
   imagePullPolicy: "Always"
 
   # Identify which Secret contains the credentials for pulling an image
-  #imagePullSecrets:
-  #- name: regsecret
+  imagePullSecrets:
+  - name: ocirsecret
   
   # Identify which Secret contains the WebLogic Admin credentials,
   # the secret must contain 'username' and 'password' fields.
   webLogicCredentialsSecret: 
-    name: playground-weblogic-credentials
+    name: cloud-coaching-weblogic-credentials
 
   # Whether to include the WebLogic Server stdout in the pod's stdout, default is true
   includeServerOutInPodLog: true
@@ -125,7 +125,7 @@ spec:
       #configMap: playground-wdt-config-map
 
       # All 'FromModel' domains require a runtimeEncryptionSecret with a 'password' field
-      runtimeEncryptionSecret: playground-runtime-encryption-secret
+      runtimeEncryptionSecret: cloud-coaching-runtime-encryption-secret
 
     # Secrets that are referenced by model yaml macros
     # (the model yaml in the optional configMap or in the image)

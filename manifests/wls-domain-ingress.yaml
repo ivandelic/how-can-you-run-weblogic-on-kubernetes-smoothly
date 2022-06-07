@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-coaching-ingress-web
+  namespace: cloud-coaching-weblogic-domain-ns
+spec:
+  ingressClassName: cloud-coaching-nginx
+  rules:
+    - host: "web.cloud-coaching.ivandelic.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cloud-coaching-cluster-cluster-1
+                port:
+                  number: 8001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: cloud-coaching-ingress-admin
+  namespace: cloud-coaching-weblogic-domain-ns
+spec:
+  ingressClassName: cloud-coaching-nginx
+  rules:
+    - host: "admin.cloud-coaching.ivandelic.com"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: cloud-coaching-admin-server
+                port:
+                  number: 7001
